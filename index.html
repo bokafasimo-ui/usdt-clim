@@ -269,15 +269,6 @@
   @keyframes draw-check{ to{ stroke-dashoffset:0; } }
   .success-card h2{ font-family:var(--font-display); font-weight:800; font-size:21px; margin:0 0 8px; color:var(--text-1); }
   .success-card p.msg{ color:var(--text-2); font-size:13.5px; line-height:1.6; margin:0 0 18px; }
-  .ref-box{
-    display:flex; align-items:center; gap:8px; background:rgba(255,255,255,.03);
-    border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px 14px; margin-bottom:14px;
-  }
-  .ref-box input{ flex:1; background:transparent; border:none; outline:none; color:var(--accent); font-family:var(--font-mono); font-size:12.5px; min-width:0; }
-  .copy-btn{ background:rgba(31,224,140,.1); border:1px solid var(--border-accent); color:var(--text-1); border-radius:8px;
-    padding:7px 12px; font-size:12px; font-family:var(--font-body); font-weight:600; cursor:pointer; white-space:nowrap; transition:.15s; }
-  .copy-btn:active{ transform:scale(.94); }
-  .copy-btn.copied{ background:rgba(31,224,140,.25); border-color:var(--accent); }
   .share-btn{
     width:100%; padding:14px; border-radius:var(--radius-md); border:1px solid var(--border);
     background:var(--glass-strong); color:var(--text-1);
@@ -285,8 +276,6 @@
     display:flex; align-items:center; justify-content:center; gap:8px; transition:.2s ease;
   }
   .share-btn:hover{ border-color:var(--border-accent); background:var(--accent-dim); }
-  .entry-number{ font-family:var(--font-mono); font-size:11px; color:var(--text-3); margin-top:14px; }
-  .entry-number b{ color:var(--accent); }
 
   #confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:50; }
 
@@ -336,7 +325,7 @@
     </div>
     <p class="eyebrow">نوفا دروب</p>
     <h1 class="title">شارك وعزز فرصك<br>بجوائز تصل إلى 10 USDT</h1>
-    <p class="subtitle">أدخل بياناتك وشارك رابطك — كل مشاركة تمنحك إدخالات إضافية وترفع فرصتك في السحب العشوائي.</p>
+    <p class="subtitle">أدخل بياناتك للمشاركة في السحب العشوائي، وشارك التطبيق مع أصدقائك.</p>
 
     <div class="info-grid">
       <div class="info-cell">
@@ -401,7 +390,7 @@
           <span class="btn-text" id="btn-text">انضم إلى السحب ←</span>
         </span>
       </button>
-      <p class="fine-print" id="fine-print">لا يتطلب أي عملية شراء. إدخال واحد لكل حساب تيليجرام.<br>شارك رابطك بعد التسجيل لزيادة فرصك في الفوز.</p>
+      <p class="fine-print" id="fine-print">لا يتطلب أي عملية شراء. إدخال واحد لكل حساب تيليجرام.</p>
     </form>
 
     <div class="success-card" id="success-card">
@@ -409,16 +398,11 @@
         <svg viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </div>
       <h2>أنت الآن ضمن السحب!</h2>
-      <p class="msg">حظًا موفقًا — الفوز يتم عبر سحب عشوائي بين المشاركين. شارك رابطك لزيادة عدد إدخالاتك ورفع فرصتك.</p>
-      <div class="ref-box">
-        <input id="ref-link" type="text" readonly dir="ltr" style="text-align:left" />
-        <button class="copy-btn" id="copy-btn">نسخ</button>
-      </div>
+      <p class="msg">حظًا موفقًا — الفوز يتم عبر سحب عشوائي بين المشاركين.</p>
       <button class="share-btn" id="share-btn">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         مشاركة على تيليجرام
       </button>
-      <p class="entry-number">الإدخال رقم <b id="entry-num" dir="ltr">—</b> · مكافأة الإحالة: <b>+2 إدخال</b> لكل صديق</p>
     </div>
   </div>
 
@@ -749,18 +733,14 @@
   /* ---------------- submit flow ---------------- */
   var formCard = document.getElementById('form-card');
   var successCard = document.getElementById('success-card');
-  var refLinkInput = document.getElementById('ref-link');
-  var copyBtn = document.getElementById('copy-btn');
   var shareBtn = document.getElementById('share-btn');
-  var entryNumEl = document.getElementById('entry-num');
 
-  function makeReferralCode(name){
-    var clean = name.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'nova';
-    // Arabic-only handles fall back to the "nova" slug above since referral codes stay Latin for URL-safety.
-    var hash = 0;
-    for (var i = 0; i < clean.length; i++) hash = (hash * 31 + clean.charCodeAt(i)) >>> 0;
-    return clean.slice(0, 10) + (hash % 9999);
-  }
+  /* إخفاء بطاقة النجاح عند الضغط في أي مكان فارغ خارجها */
+  document.addEventListener('click', function(e){
+    if (successCard.classList.contains('show') && !successCard.contains(e.target)) {
+      successCard.classList.remove('show');
+    }
+  });
 
   form.addEventListener('submit', function(e){
     e.preventDefault();
@@ -800,16 +780,12 @@
       form.style.display = 'none';
       successCard.classList.add('show');
 
-      var code = makeReferralCode(entry.name);
-      refLinkInput.value = 't.me/NovaDropBot?start=' + code;
-      entryNumEl.textContent = (12000 + Math.floor(Math.random() * 900)).toLocaleString();
-
       burstConfetti();
       haptic('success');
 
       if (tg && tg.MainButton) {
         try {
-          tg.MainButton.setText('شارك رابطك');
+          tg.MainButton.setText('مشاركة على تيليجرام');
           tg.MainButton.show();
           tg.MainButton.onClick(function(){ shareBtn.click(); });
         } catch(err) {}
@@ -822,27 +798,9 @@
     });
   });
 
-  copyBtn.addEventListener('click', function(){
-    refLinkInput.select();
-    refLinkInput.setSelectionRange(0, 999);
-    var done = function(){
-      copyBtn.textContent = 'تم النسخ ✓';
-      copyBtn.classList.add('copied');
-      haptic('light');
-      setTimeout(function(){ copyBtn.textContent = 'نسخ'; copyBtn.classList.remove('copied'); }, 1800);
-    };
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(refLinkInput.value).then(done).catch(function(){
-        document.execCommand('copy'); done();
-      });
-    } else {
-      document.execCommand('copy'); done();
-    }
-  });
-
   shareBtn.addEventListener('click', function(){
-    var url = 'https://' + refLinkInput.value;
-    var text = encodeURIComponent('انضممت للتو إلى نوفا دروب — جوائز تصل إلى 10 USDT عبر شبكة TON. انضم عبر رابطي:');
+    var url = 'https://t.me/NovaDropBot';
+    var text = encodeURIComponent('انضممت للتو إلى نوفا دروب — جوائز تصل إلى 10 USDT عبر شبكة TON. جرّب حظك أنت أيضًا:');
     var shareUrl = 'https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + text;
     if (tg && tg.openTelegramLink) {
       try { tg.openTelegramLink(shareUrl); return; } catch(e) {}
