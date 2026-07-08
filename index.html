@@ -279,6 +279,26 @@
 
   #confetti-canvas{ position:fixed; inset:0; pointer-events:none; z-index:50; }
 
+  /* ---------- شريط الفائزين المتحرك (إثبات دفع على TON) ---------- */
+  .winners-ticker{ margin-top:24px; }
+  .winners-label{ text-align:center; font-size:10.5px; color:var(--text-3); letter-spacing:.04em; margin-bottom:8px; }
+  .winners-scroll{
+    overflow:hidden; border-radius:var(--radius-md); border:1px solid var(--border);
+    background:var(--glass); padding:12px 0; -webkit-mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+    mask-image:linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  }
+  .winners-track{ display:flex; gap:10px; width:max-content; animation:winners-marquee 22s linear infinite; }
+  .winners-track:hover{ animation-play-state:paused; }
+  @keyframes winners-marquee{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  .winner-pill{
+    display:flex; align-items:center; gap:8px; background:var(--glass-strong);
+    border:1px solid var(--border-accent); border-radius:999px; padding:8px 14px;
+    white-space:nowrap; cursor:pointer; transition:.15s ease;
+  }
+  .winner-pill:hover{ background:var(--accent-dim); }
+  .winner-wallet{ font-family:var(--font-mono); font-size:12px; color:var(--text-2); }
+  .winner-amount{ font-family:var(--font-mono); font-size:12px; font-weight:700; color:var(--accent); }
+
   footer.appfoot{ text-align:center; margin-top:24px; color:var(--text-3); font-size:10.5px; line-height:1.7; }
   footer.appfoot a{ color:var(--accent); text-decoration:none; }
 
@@ -403,6 +423,13 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         مشاركة على تيليجرام
       </button>
+    </div>
+  </div>
+
+  <div class="winners-ticker" id="winners-ticker" style="display:none;">
+    <div class="winners-label">فائزون تم التحقق منهم على شبكة TON</div>
+    <div class="winners-scroll">
+      <div class="winners-track" id="winners-track"></div>
     </div>
   </div>
 
@@ -807,6 +834,59 @@
     }
     window.open(shareUrl, '_blank');
   });
+
+  /* ============================================================
+     شريط الفائزين (إثبات دفع حقيقي على شبكة TON)
+     قراءة فقط من جدول winners المنفصل — لا علاقة له إطلاقًا
+     بجدول entries أو بمنطق منع التكرار أو بأي دالة كتابة حساسة */
+  function shortenWallet(w){
+    if (w.length <= 12) return w;
+    return w.slice(0, 6) + '…' + w.slice(-4);
+  }
+
+  function openWalletExplorer(wallet){
+    var url = 'https://tonviewer.com/' + wallet;
+    if (tg && tg.openLink) {
+      try { tg.openLink(url); return; } catch(e) {}
+    }
+    window.open(url, '_blank');
+  }
+
+  function renderWinnersTicker(list){
+    var winnersTicker = document.getElementById('winners-ticker');
+    var winnersTrack = document.getElementById('winners-track');
+    if (!list || !list.length) return;
+
+    function buildPill(row){
+      var pill = document.createElement('div');
+      pill.className = 'winner-pill';
+      var walletEl = document.createElement('span');
+      walletEl.className = 'winner-wallet';
+      walletEl.textContent = shortenWallet(String(row.wallet));
+      var amountEl = document.createElement('span');
+      amountEl.className = 'winner-amount';
+      amountEl.textContent = '+' + row.amount + ' USDT';
+      pill.appendChild(walletEl);
+      pill.appendChild(amountEl);
+      pill.addEventListener('click', function(){ openWalletExplorer(row.wallet); });
+      return pill;
+    }
+
+    // تكرار القائمة مرتين لضمان تمرير متصل وسلس بلا فراغات
+    list.concat(list).forEach(function(row){
+      winnersTrack.appendChild(buildPill(row));
+    });
+
+    winnersTicker.style.display = '';
+  }
+
+  if (supabase) {
+    supabase.from('winners').select('wallet, amount').order('created_at', { ascending: false })
+      .then(function(res){
+        if (res.error) { console.error('winners fetch error:', res.error); return; }
+        renderWinnersTicker(res.data);
+      });
+  }
 
 })();
 </script>
